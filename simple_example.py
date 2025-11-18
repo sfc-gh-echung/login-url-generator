@@ -2,6 +2,8 @@
 Simple example of connecting to Snowflake with external browser authentication.
 """
 from snowflake_connector import SnowflakeConnection
+import csv
+from datetime import datetime
 
 # ===== Connection 1: Snowhouse (to get account info) =====
 print("=" * 60)
@@ -75,11 +77,15 @@ try:
     result = sf2.execute_query("SELECT CURRENT_USER(), CURRENT_ROLE()")
     print("Connected as:", result[0])
     
+    # Collect results for CSV export
+    csv_data = []
+    
     # Run the SYSTEM$GET_GLOBAL_ACCOUNT_CLASSIC_UI_URL query using parameters from snowhouse
     if results:
         print("\n--- Running SYSTEM$GET_GLOBAL_ACCOUNT_CLASSIC_UI_URL ---")
         for row in results:
             account_name = row['ACCOUNT_NAME']
+            deployment = row['DEPLOYMENT']
             classic_ui_url = row['CLASSIC_UI_URL']
             
             print(f"\nGenerating URL for account: {account_name}")
@@ -90,10 +96,40 @@ try:
                 result = sf2.execute_query(query)
                 url = result[0][f"SYSTEM$GET_GLOBAL_ACCOUNT_CLASSIC_UI_URL('{account_name}', '{classic_ui_url}')"]
                 print(f"✓ Generated URL: {url}")
+                
+                # Add to CSV data
+                csv_data.append({
+                    'account_name': account_name,
+                    'deployment': deployment,
+                    'classic_ui_url': url
+                })
             except Exception as e:
                 print(f"✗ Error: {str(e)}")
+                # Add error entry to CSV
+                csv_data.append({
+                    'account_name': account_name,
+                    'deployment': deployment,
+                    'classic_ui_url': f"ERROR: {str(e)}"
+                })
     else:
         print("\nNo account data to process from snowhouse.")
+    
+    # Export to CSV
+    if csv_data:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        csv_filename = f"snowflake_urls_{timestamp}.csv"
+        
+        with open(csv_filename, 'w', newline='') as csvfile:
+            fieldnames = ['account_name', 'deployment', 'classic_ui_url']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            
+            writer.writeheader()
+            for data in csv_data:
+                writer.writerow(data)
+        
+        print(f"\n{'='*60}")
+        print(f"✓ Exported {len(csv_data)} results to: {csv_filename}")
+        print(f"{'='*60}")
     
 finally:
     sf2.close()
