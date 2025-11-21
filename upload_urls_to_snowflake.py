@@ -65,7 +65,7 @@ def create_table(sf, database, schema, table):
         table: Table name
     """
     create_query = f"""
-    CREATE TABLE IF NOT EXISTS {database}.{schema}.{table} (
+    CREATE OR REPLACE TABLE {database}.{schema}.{table} (
         account_name VARCHAR(256),
         deployment VARCHAR(256),
         classic_ui_url VARCHAR(512)
