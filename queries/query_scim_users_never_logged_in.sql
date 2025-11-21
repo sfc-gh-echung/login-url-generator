@@ -14,7 +14,7 @@ WHERE a.SUSPENDED_TIME IS NULL  -- Not suspended
     AND u.SCIM_EXTERNAL_ID IS NOT NULL  -- SCIM users only
     AND u.DELETED_ON IS NULL  -- Active users only
     AND u.LAST_SUC_LOGIN IS NULL  -- Never logged in
-    AND u.CREATED_ON >= DATEADD(day, -5, DATE_TRUNC('day', '2025-11-20'))  -- Start of 5 days ago
-    AND u.CREATED_ON < DATEADD(day, -4, DATE_TRUNC('day', '2025-11-20'))  -- Start of 4 days ago
+    AND u.CREATED_ON >= DATEADD(day, -5, DATE_TRUNC('day', '2025-11-20'::DATE))  -- Start of 5 days ago
+    AND u.CREATED_ON < DATEADD(day, -4, DATE_TRUNC('day', '2025-11-20'::DATE))  -- Start of 4 days ago
 ORDER BY a.name
 
