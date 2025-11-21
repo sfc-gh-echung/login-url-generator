@@ -5,14 +5,13 @@ Filters out error rows and replaces existing data.
 from snowflake_connector import SnowflakeConnection
 import csv
 import os
+import argparse
 
 # Configuration
 ACCOUNT = "snowhouse"
 USER = "echung"
-CSV_FILE = "snowflake_urls_20251118_105130.csv"
 DATABASE = "temp"
 SCHEMA = "echung2"
-TABLE = "login_urls_activation_emails_accounts"
 BATCH_SIZE = 1000
 
 
@@ -140,18 +139,22 @@ def batch_insert_rows(sf, database, schema, table, rows, batch_size):
     return total_inserted
 
 
-def main():
+def main(csv_file, table):
     """
     Main function to upload CSV data to Snowflake.
+    
+    Args:
+        csv_file: Path to CSV file to upload
+        table: Table name in Snowflake
     """
     print("=" * 60)
     print("CSV Upload to Snowflake")
     print("=" * 60)
     
     # Read and filter CSV
-    print(f"\n--- Reading CSV file: {CSV_FILE} ---")
+    print(f"\n--- Reading CSV file: {csv_file} ---")
     try:
-        filtered_rows, total_count, error_count = read_and_filter_csv(CSV_FILE)
+        filtered_rows, total_count, error_count = read_and_filter_csv(csv_file)
         print(f"✓ CSV read successfully")
         print(f"  Total rows in CSV: {total_count}")
         print(f"  Rows filtered out (errors/empty): {error_count}")
@@ -187,16 +190,16 @@ def main():
             print(f"  User: {result[0]['CURRENT_USER()']}")
         
         # Create table if not exists
-        create_table(sf, DATABASE, SCHEMA, TABLE)
+        create_table(sf, DATABASE, SCHEMA, table)
         
         # Truncate existing data
-        truncate_table(sf, DATABASE, SCHEMA, TABLE)
+        truncate_table(sf, DATABASE, SCHEMA, table)
         
         # Insert filtered rows in batches
-        inserted_count = batch_insert_rows(sf, DATABASE, SCHEMA, TABLE, filtered_rows, BATCH_SIZE)
+        inserted_count = batch_insert_rows(sf, DATABASE, SCHEMA, table, filtered_rows, BATCH_SIZE)
         
         # Verify insert
-        verify_query = f"SELECT COUNT(*) as count FROM {DATABASE}.{SCHEMA}.{TABLE}"
+        verify_query = f"SELECT COUNT(*) as count FROM {DATABASE}.{SCHEMA}.{table}"
         result = sf.execute_query(verify_query)
         actual_count = result[0]['COUNT'] if result else 0
         
@@ -205,7 +208,7 @@ def main():
         print(f"{'='*60}")
         print(f"  Rows inserted: {inserted_count}")
         print(f"  Rows in table: {actual_count}")
-        print(f"  Table: {DATABASE}.{SCHEMA}.{TABLE}")
+        print(f"  Table: {DATABASE}.{SCHEMA}.{table}")
         
         if inserted_count != actual_count:
             print(f"\n⚠ Warning: Inserted count doesn't match table count!")
@@ -220,5 +223,22 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description='Upload CSV data to Snowflake table, filtering out error rows'
+    )
+    parser.add_argument(
+        '--csv',
+        type=str,
+        required=True,
+        help='Path to CSV file to upload'
+    )
+    parser.add_argument(
+        '--table',
+        type=str,
+        required=True,
+        help='Table name in Snowflake (without database/schema prefix)'
+    )
+    
+    args = parser.parse_args()
+    main(args.csv, args.table)
 

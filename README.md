@@ -135,3 +135,10 @@ If you encounter issues with port 8085, you may need to adjust the account ident
 
 MIT License - Feel free to use and modify as needed.
 
+## To Run
+
+```
+python generate_urls.py --query-file queries/query_scim_users_never_logged_in.sql --skip-processed-check
+
+python upload_urls_to_snowflake.py --csv snowflake_urls_20251120_232939.csv --table login_urls_20251120_run
+```
